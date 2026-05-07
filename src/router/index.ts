@@ -18,116 +18,84 @@ import Juese from "@/views/Main1/juese/Juese.vue";
 import { useGlobalStore } from "@/Store/global";
 import Performer from "@/views/Main1/performer/Performer.vue";
 
-//懒加载
 const NotFound = () => import('@/views/404/NotFound.vue');
 
-//权限数组
 const permissionRoutes = [
     {
         path: 'MovieTabulation',
         component: MovieTabulation,
         name: 'MovieTabulation',
-        meta: {
-            title: ['电影列表']
-        }
+        meta: { title: ['电影列表'] }
     },
     {
         path: 'MovieType',
         component: MovieType,
         name: 'MovieType',
-        meta: {
-            title: ['电影类型'],
-        }
+        meta: { title: ['电影类型'] }
     },
     {
         path: 'Cinema',
         component: Cinema,
         name: 'Cinema',
-        meta: {
-            title: ['影院列表']
-        }
+        meta: { title: ['影院列表'] }
     },
     {
         path: 'CinemaD2',
         component: CinemaD2,
         name: 'CinemaD2',
-        meta: {
-            title: ['影院品牌']
-        }
+        meta: { title: ['影院品牌'] }
     },
     {
         path: 'AddMovie',
         component: AddMovie,
-        meta: {
-            title: ['添加电影']
-        }
+        meta: { title: ['添加电影'] }
     },
     {
         path: 'Ranking',
         component: Ranking,
         name: 'Ranking',
-        meta: {
-            title: ['排片管理']
-        }
+        meta: { title: ['排片管理'] }
     },
     {
         path: 'Order',
         component: Order,
         name: 'Order',
-        meta: {
-            title: ['订单管理']
-        }
+        meta: { title: ['订单管理'] }
     },
     {
         path: 'User',
         component: User,
         name: 'User',
-        meta: {
-            title: ['用户管理']
-        }
+        meta: { title: ['用户管理'] }
     },
-
     {
         path: 'modifyMovie/:movieId',
         component: AddMovie,
-        meta: {
-            title: ['修改电影']
-        }
+        meta: { title: ['修改电影'] }
     },
     {
         path: 'MovieDetails/:movieId',
         component: MoveDetails,
-        meta: {
-            title: ['电影详情']
-        }
+        meta: { title: ['电影详情'] }
     },
-
     {
         path: 'CinemaSelect/:movieId',
         component: CinemaSelect,
-        meta: {
-            title: ['影院详情']
-        }
+        meta: { title: ['影院详情'] }
     },
     {
         path: 'Performer',
         component: Performer,
         name: 'Performer',
-        meta: {
-            title: ['演职人员']
-        }
+        meta: { title: ['演职人员'] }
     },
-
 ]
 
-
-// 路由配置
 const routes = [
     {
         path: '/login',
         component: LoginView
     },
-
     {
         path: '/',
         component: MainView,
@@ -141,25 +109,19 @@ const routes = [
                 path: '/HomePage',
                 component: HomePage,
                 name: 'HomePage',
-                meta: {
-                    title: ['首页']
-                }
+                meta: { title: ['首页'] }
             },
             {
                 path: 'manage',
                 component: Manage,
                 name: 'manage',
-                meta: {
-                    title: ['管理员管理']
-                }
+                meta: { title: ['管理员管理'] }
             },
             {
                 path: 'juese',
                 component: Juese,
                 name: 'juese',
-                meta: {
-                    title: ['角色管理']
-                }
+                meta: { title: ['角色管理'] }
             },
         ]
     },
@@ -167,61 +129,63 @@ const routes = [
         path: '/:pathMatch(.*)*',
         component: NotFound
     },
-
 ]
 
 const router = createRouter({
-    // 设置路由模式
     history: createWebHistory(),
-    // 设置路由配置
     routes: routes
 })
 
-//添加白名单（设置哪些页面无需导航守卫的验证）
 const WHITE_LIST = ['/login']
 
-//添加开关变量
 let isAdd = false;
 
-router.beforeEach(async (to, form) => {
+router.beforeEach(async (to, from, next) => {
     const ID2 = localStorage.getItem('userId')
+
+    // 1. 未登录且访问白名单 -> 放行
     if (!ID2 && WHITE_LIST.includes(to.path)) {
-        return true
+        next();
+        return;
     }
+
+    // 2. 已登录且访问白名单（如登录页）-> 跳转首页
     if (ID2 && WHITE_LIST.includes(to.path)) {
-        return '/HomePage'
+        next('/HomePage');
+        return;
     }
+
+    // 3. 未登录且访问非白名单 -> 跳转登录页
     if (!ID2 && !WHITE_LIST.includes(to.path)) {
-        return '/login'
+        next('/login');
+        return;
     }
 
-    if (!isAdd) {
-        //获取仓库对象
-        const globalStore = useGlobalStore();
-        //调用仓库的公共方法
-        await globalStore.getActivePinia()
-        //查看仓库的权限数据
-        console.log('权限数据', globalStore.permissions);
-        permissionRoutes.forEach((item: any) => {
-            if (globalStore.permissions?.includes(item.path)) {
-                router.addRoute('MainView', item)
-                isAdd = true;
-            }
-        })
+    // 4. 已登录且访问非白名单 -> 动态添加路由（只执行一次）
+    if (ID2 && !WHITE_LIST.includes(to.path)) {
+        if (!isAdd) {
+            const globalStore = useGlobalStore();
+            await globalStore.getActivePinia();
+            console.log('权限数据', globalStore.permissions);
 
-        return to;
+            permissionRoutes.forEach((item: any) => {
+                if (globalStore.permissions?.includes(item.path)) {
+                    router.addRoute('MainView', item);
+                }
+            });
+            isAdd = true;
+        }
+        next();  // 放行
+        return;
     }
+
+    next();
 })
 
-//暴露退出登录方法
 export const goLogin = () => {
-    //清除所有本地存储
     localStorage.clear();
-    // router.replace('/login');
-    //刷新页面
     location.reload();
 }
-
 
 export function setupRouter(app: App) {
     app.use(router)

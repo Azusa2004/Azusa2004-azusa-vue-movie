@@ -6,9 +6,7 @@
         <div class="logoName">蜗牛电影</div>
         <div class="logoText">管理系统</div>
       </div>
-
       <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline" :items="limitRoute" @click="handleMenuClick">
-
       </a-menu>
 
     </a-layout-sider>
@@ -141,7 +139,7 @@ const limitRoute=computed(()=>{
       icon:()=>h(HomeOutlined),
       label:'首页'
     },
-    
+
      ...mapMenu(items),
       {
       key:'manage',
